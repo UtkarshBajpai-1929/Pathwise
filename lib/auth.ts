@@ -42,3 +42,7 @@ export const setSession = async (userId: string) => {
     path: "/",
   });
 };
+
+export const clearSession = async () => {
+  (await cookies()).delete(SESSION_COOKIE);
+};

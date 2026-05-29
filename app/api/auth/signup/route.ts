@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { randomInt } from "crypto";
-import { hashPassword, hashValue } from "@/lib/auth";
-import { sendOtpMail } from "@/lib/mail";
+import { hashPassword, setSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
@@ -15,27 +13,19 @@ export async function POST(request: Request) {
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
 
-    const code = String(randomInt(100000, 999999));
     const user = await prisma.user.create({
       data: {
         name: String(name).trim(),
         email: normalizedEmail,
         passwordHash: hashPassword(String(password)),
-        otps: {
-          create: {
-            email: normalizedEmail,
-            codeHash: hashValue(code),
-            expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-          },
-        },
       },
-      select: { id: true, name: true, email: true, verified: true },
+      select: { id: true, name: true, email: true },
     });
 
-    await sendOtpMail(normalizedEmail, code);
+    await setSession(user.id);
     return NextResponse.json({ user });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Unable to create account. Check database and SMTP configuration." }, { status: 500 });
+    return NextResponse.json({ error: "Unable to create account. Check database configuration." }, { status: 500 });
   }
 }

@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Button } from "@/components/ui/Button";
+import { setUser } from "@/store/features";
 
 export default function SignupPage() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,10 +18,9 @@ export default function SignupPage() {
     event.preventDefault();
     setLoading(true);
     const form = new FormData(event.currentTarget);
-    const email = String(form.get("email"));
     const response = await fetch("/api/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ name: form.get("name"), email, password: form.get("password") }),
+      body: JSON.stringify({ name: form.get("name"), email: form.get("email"), password: form.get("password") }),
     });
     const data = await response.json();
     setLoading(false);
@@ -26,11 +28,12 @@ export default function SignupPage() {
       setMessage(data.error ?? "Signup failed");
       return;
     }
-    router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
+    dispatch(setUser(data.user));
+    router.push("/saved");
   };
 
   return (
-    <AuthShell title="Create your account" subtitle="Verify by email OTP and start building your shortlist.">
+    <AuthShell title="Create your account" subtitle="Start building your shortlist with a simple email and password.">
       <form onSubmit={submit} className="mt-6 space-y-4">
         <Field name="name" label="Full name" />
         <Field name="email" label="Email" type="email" />

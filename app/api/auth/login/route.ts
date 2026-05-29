@@ -9,11 +9,8 @@ export async function POST(request: Request) {
     if (!user || !verifyPassword(String(password), user.passwordHash)) {
       return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
     }
-    if (!user.verified) {
-      return NextResponse.json({ error: "Please verify your email before logging in." }, { status: 403 });
-    }
     await setSession(user.id);
-    return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email, verified: user.verified } });
+    return NextResponse.json({ user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Unable to log in." }, { status: 500 });

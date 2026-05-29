@@ -2,7 +2,7 @@
 
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-type User = { id: string; name: string; email: string; verified: boolean } | null;
+type User = { id: string; name: string; email: string } | null;
 
 type AppState = {
   user: User;
