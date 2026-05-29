@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  passwordHash   String
+  verified       Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  savedColleges  SavedCollege[]
+  questions      Discussion[]    @relation("QuestionAuthor")
+  answers        DiscussionReply[]
+  compareHistory CompareHistory[]
+  otps           VerificationOtp[]
+}
+
+model VerificationOtp {
+  id        String   @id @default(cuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+}
+
+model SavedCollege {
+  id        String   @id @default(cuid())
+  collegeId String
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, collegeId])
+}
+
+model CompareHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  collegeIds String[]
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Discussion {
+  id        String            @id @default(cuid())
+  collegeId String
+  title     String
+  body      String
+  createdAt DateTime          @default(now())
+  authorId  String
+  author    User              @relation("QuestionAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  replies   DiscussionReply[]
+
+  @@index([collegeId])
+}
+
+model DiscussionReply {
+  id           String     @id @default(cuid())
+  body         String
+  createdAt    DateTime   @default(now())
+  discussionId String
+  authorId     String
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
