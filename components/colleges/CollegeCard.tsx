@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import type { College } from "@/types/college";
+import { removeSavedCollege, saveCollege, saveCompareWorkspace } from "@/lib/client/workspace-api";
 import { currency, lpa } from "@/lib/format";
-import { toggleCompare, toggleSaved } from "@/store/features";
+import { setCompare, setCompareHistory, toggleSaved } from "@/store/features";
 import type { RootState } from "@/store/store";
 import { Button, LinkButton } from "@/components/ui/Button";
 
@@ -12,8 +13,45 @@ export function CollegeCard({ college }: { college: College }) {
   const dispatch = useDispatch();
   const compareIds = useSelector((state: RootState) => state.app.compareIds);
   const savedIds = useSelector((state: RootState) => state.app.savedIds);
+  const user = useSelector((state: RootState) => state.app.user);
   const selected = compareIds.includes(college.id);
   const saved = savedIds.includes(college.id);
+
+  const handleCompare = async () => {
+    const nextIds = selected
+      ? compareIds.filter((id) => id !== college.id)
+      : [...compareIds, college.id].slice(-3);
+
+    dispatch(setCompare(nextIds));
+
+    if (!user) return;
+
+    try {
+      const compare = await saveCompareWorkspace(nextIds);
+      dispatch(setCompareHistory(compare.history));
+    } catch {
+      dispatch(setCompare(compareIds));
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user) {
+      window.location.href = "/auth/login";
+      return;
+    }
+
+    dispatch(toggleSaved(college.id));
+
+    try {
+      if (saved) {
+        await removeSavedCollege(college.id);
+      } else {
+        await saveCollege(college.id);
+      }
+    } catch {
+      dispatch(toggleSaved(college.id));
+    }
+  };
 
   return (
     <article className="group overflow-hidden rounded-[8px] border border-emerald-100 bg-white soft-shadow transition duration-300 hover:-translate-y-1 hover:border-emerald-200">
@@ -41,10 +79,10 @@ export function CollegeCard({ college }: { college: College }) {
         </div>
         <p className="mt-4 text-sm font-medium text-emerald-700">{college.placementRate}% placement rate · Highest {lpa(college.highestPackage)}</p>
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <Button variant={selected ? "primary" : "secondary"} onClick={() => dispatch(toggleCompare(college.id))}>
+          <Button variant={selected ? "primary" : "secondary"} onClick={handleCompare}>
             {selected ? "Selected" : "Compare"}
           </Button>
-          <Button variant={saved ? "primary" : "secondary"} onClick={() => dispatch(toggleSaved(college.id))}>
+          <Button variant={saved ? "primary" : "secondary"} onClick={handleSave}>
             {saved ? "Saved" : "Save"}
           </Button>
           <LinkButton href={`/colleges/${college.id}`} variant="ghost" className="col-span-2 border border-transparent bg-slate-50">

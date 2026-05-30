@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { LogOut, MoreVertical, UserRound, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "@/store/store";
 import { LinkButton } from "@/components/ui/Button";
-import { setUser } from "@/store/features";
+import { resetWorkspace, setUser } from "@/store/features";
 
 export function Navbar() {
   const dispatch = useDispatch();
@@ -15,22 +15,10 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    fetch("/api/auth/me")
-      .then((response) => response.json())
-      .then((data) => {
-        if (mounted) dispatch(setUser(data.user));
-      })
-      .catch(() => undefined);
-    return () => {
-      mounted = false;
-    };
-  }, [dispatch]);
-
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     dispatch(setUser(null));
+    dispatch(resetWorkspace());
     setUserOpen(false);
     setMobileOpen(false);
   };

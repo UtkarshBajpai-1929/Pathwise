@@ -3,9 +3,10 @@
 import { useDispatch, useSelector } from "react-redux";
 import { AppShell } from "@/components/layout/AppShell";
 import { LinkButton } from "@/components/ui/Button";
+import { saveCompareWorkspace } from "@/lib/client/workspace-api";
 import { colleges } from "@/lib/college-data";
 import { currency, lpa } from "@/lib/format";
-import { removeCompare, toggleCompare } from "@/store/features";
+import { removeCompare, setCompare, setCompareHistory } from "@/store/features";
 import type { RootState } from "@/store/store";
 
 export default function ComparePage() {
@@ -14,6 +15,7 @@ export default function ComparePage() {
   const compareIds = useSelector(
     (state: RootState) => state.app.compareIds
   );
+  const user = useSelector((state: RootState) => state.app.user);
 
   const selected = colleges.filter((college) =>
     compareIds.includes(college.id)
@@ -22,6 +24,33 @@ export default function ComparePage() {
   const suggestions = colleges
     .filter((college) => !compareIds.includes(college.id))
     .slice(0, 8);
+
+  const persistCompare = async (nextIds: string[], rollbackIds: string[]) => {
+    if (!user) return;
+
+    try {
+      const compare = await saveCompareWorkspace(nextIds);
+      dispatch(setCompareHistory(compare.history));
+    } catch {
+      dispatch(setCompare(rollbackIds));
+    }
+  };
+
+  const handleRemove = (collegeId: string) => {
+    const nextIds = compareIds.filter((id) => id !== collegeId);
+    dispatch(removeCompare(collegeId));
+    persistCompare(nextIds, compareIds);
+  };
+
+  const handleToggle = (collegeId: string) => {
+    const alreadySelected = compareIds.includes(collegeId);
+    const nextIds = alreadySelected
+      ? compareIds.filter((id) => id !== collegeId)
+      : [...compareIds, collegeId].slice(-3);
+
+    dispatch(setCompare(nextIds));
+    persistCompare(nextIds, compareIds);
+  };
 
   return (
     <AppShell>
@@ -85,9 +114,7 @@ export default function ComparePage() {
                       </div>
 
                       <button
-                        onClick={() =>
-                          dispatch(removeCompare(college.id))
-                        }
+                        onClick={() => handleRemove(college.id)}
                         className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-100 transition"
                       >
                         Remove
@@ -161,9 +188,7 @@ export default function ComparePage() {
             {suggestions.map((college) => (
               <button
                 key={college.id}
-                onClick={() =>
-                  dispatch(toggleCompare(college.id))
-                }
+                onClick={() => handleToggle(college.id)}
                 disabled={compareIds.length >= 3}
                 className="rounded-[8px] border border-emerald-100 bg-white p-4 text-left transition hover:-translate-y-1 hover:border-emerald-200 disabled:opacity-50"
               >
